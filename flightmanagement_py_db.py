@@ -168,20 +168,40 @@ def retrive_flight(db_cursor, dest, status, depDate):
 
 
 """
-The below function is to retrieve ddata from the flight table based on conditions
+The below function is to update the departure date and status of a flight selected by the user
 """
 def modify_flight_schedule(db_cursor, flightId, depDate, status):
-    res = db_cursor.execute("SELECT * FROM flight")
+    if depDate is not "" and status is not "":
+        db_cursor.execute("UPDATE flight SET flight_schedule=?, flight_status=? WHERE flight_id=? ", (depDate, status, flightId))
+    elif depDate is not "" and status is "":
+        db_cursor.execute("UPDATE flight SET flight_schedule=? WHERE flight_id=? ", (depDate, flightId))
+    elif depDate is "" and status is not "":
+        db_cursor.execute("UPDATE flight SET flight_status=? WHERE flight_id=? ", (status, flightId))
+    db_connection.commit() 
+
+    res = db_cursor.execute("SELECT * FROM flight where flight_id = ?" , flightId) 
     res.fetchall()
+    print(res.fetchall())
 
     
 
 """
-The below function is to retrieve ddata from the flight table based on conditions
+The below function is to assign pilot to an entry in the flight table based on conditions
 """
 def assign_pilot(db_cursor, flightId, pilotId, random):
-    res = db_cursor.execute("SELECT * FROM flight")
+
+    if pilotId is not "" and random != "Y":
+        db_cursor.execute("UPDATE flight SET pilot_id=? WHERE flight_id=? ", (pilotId, flightId))
+    elif pilotId is not "" and random == "Y":
+        #find_pilot = select pilot_id from pilot 
+        #db_cursor.execute("UPDATE flight SET flight_schedule=? WHERE flight_id=? ", (depDate, flightId))
+        db_cursor.execute("UPDATE flight SET pilot_id=? WHERE flight_id=? ", (pilotId, flightId))
+    db_connection.commit() 
+
+
+    res = db_cursor.execute("SELECT * FROM flight where flight_id = ?" , flightId) 
     res.fetchall()
+    print(res.fetchall())
 
     
   
