@@ -176,15 +176,15 @@ def fill_tables(db_cursor, db_connection):
 The below function is to create flight
 """
 def create_flight(db_cursor, resDestination, resModel, resStatus, resDepDate, resPilot):
-    FlightIdFetcher = db_cursor.execute("Select flight_id from flight ORDER BY flight_id DESC")
-    flightIdFetcherRow = FlightIdFetcher.fetchone()
-    lastflightId = flightIdFetcherRow["flight_id"]
-    flightId = lastflightId+1
-    db_cursor.execute("INSERT INTO flight VALUES(?, ?, ?, ?, ?, ?)", (flightId, resModel, resDestination, resPilot, resDepDate, resStatus))
+    db_cursor.execute("INSERT INTO flight (model_id, dest_id, pilot_id, flight_schedule, flight_status) VALUES (?, ?, ?, ?, ?)", (resModel, resDestination, resPilot, resDepDate, resStatus))
+    db_connection.commit() 
+    res = db_cursor.execute("SELECT * FROM flight ORDER BY flight_id DESC")
 
-    res = db_cursor.execute("SELECT * FROM flight WHERE flight_id = ?", flightId)
-    res.fetchone()
-    print(res.fetchone())
+    row = res.fetchone()      
+    if row:
+        print("New flight inserted is :")
+        print(row)
+    
 
 """
 The below function is to retrieve ddata from the flight table based on conditions
@@ -214,8 +214,8 @@ def retrive_flight(db_cursor, dest, status, depDate):
             selectQuery = selectQuery + " flight_schedule = " + depDate
         addAnd = True
     res = db_cursor.execute(selectQuery)
-    res.fetchall()
-    print(res.fetchall())
+    for row in res.fetchall(): 
+        print(row)
 
 
 """
@@ -231,8 +231,8 @@ def modify_flight_schedule(db_cursor, flightId, depDate, status):
     db_connection.commit() 
 
     res = db_cursor.execute("SELECT * FROM flight where flight_id = ?" , flightId) 
-    res.fetchall()
-    print(res.fetchall())
+    for row in res.fetchall(): 
+        print(row)
 
     
 
@@ -269,30 +269,30 @@ def assign_pilot(db_cursor, flightId, pilotId, random):
 
 
     res = db_cursor.execute("SELECT * FROM flight where flight_id = ?" , flightId) 
-    res.fetchall()
-    print(res.fetchall())
+    for row in res.fetchall(): 
+        print(row)
 
 
 """
 The below function is to view pilot schedule
 """
 def view_pilot_schedule(db_cursor, resPilot):
+        
+    if resPilot == "All":
+        pilot_rec = db_cursor.execute("SELECT * FROM pilot LEFT JOIN pilot_schedule ON pilot.pilot_id = pilot_schedule.pilot_id")
+    else: 
+        pilot_rec = db_cursor.execute("SELECT * FROM pilot LEFT JOIN pilot_schedule ON pilot.pilot_id = pilot_schedule.pilot_id WHERE pilot.pilot_id = ?" , resPilot) 
 
-    if resPilot != "All":
-        pilot_rec = db_cursor.execute("SELECT * FROM pilot LEFT JOIN pilot_schedule ON pilot.pilot_id = pilot_schedule.pilot_id WHERE pilot_id = ?" , resPilot) 
-    else:
-        pilot_rec = db_cursor.execute("SELECT * FROM pilot LEFT JOIN pilot_schedule ON pilot.pilot_id = pilot_schedule.pilot_id") 
-    
-    pilot_rec.fetchall()
-    print(pilot_rec.fetchall())
+    for row in pilot_rec.fetchall(): 
+        print(row)
     
 
 
     
 def view_destinations(db_curson):
     res = db_cursor.execute("SELECT * FROM destination")
-    res.fetchall()
-    print(res.fetchall())
+    for row in res.fetchall(): 
+        print(row)
 
 """
 The below function is to retrieve ddata from the flight table based on conditions
@@ -326,18 +326,17 @@ def manage_destination(db_cursor, destId, destName, destAdd, destStatus):
         updateQuery = updateQuery + " WHERE dest_id = " + destId
         res = db_cursor.execute(updateQuery)
     else:
-        DestIdFetcher = db_cursor.execute("Select dest_id from destination ORDER BY dest_id DESC")
-        DestIdFetcherRow = DestIdFetcher.fetchone()
-        lastdestId = DestIdFetcherRow["dest_id"]
-        destId = lastdestId+1
+        
         destActive = True
         if destStatus != "Y":
             destActive = False
-        db_cursor.execute("INSERT INTO destination VALUES(?, ?, ?, ?)", (destId, destName, destAdd, destActive))
+        db_cursor.execute("INSERT INTO destination (dest_name, dest_add, active) VALUES(?, ?, ?)", (destName, destAdd, destActive))
 
-    res = db_cursor.execute("SELECT * FROM destination WHERE dist_id = ?", destId)
-    res.fetchone()
-    print(res.fetchone())
+    res = db_cursor.execute("SELECT * FROM destination ORDER BY dest_id DESC")
+    row = res.fetchone()      
+    if row:
+        print("New destination inserted is :")
+        print(row)
     
 
 
@@ -350,18 +349,17 @@ def view_report(db_cursor, reportType):
     2. Pilot Based
     3. OverAll 
     """
+
     if reportType == 1:
         res = db_cursor.execute("SELECT destination.dest_name, count(*) FROM flight LEFT JOIN destination ON flight.dest_id = destination.dest_id GROUP BY flight.dest_id")
     elif reportType == 2:
         res = db_cursor.execute("SELECT pilot.pilot_name, count(*) FROM flight LEFT JOIN pilot ON flight.pilot_id = pilot.pilot_id GROUP BY flight.pilot_id")
-    else:
-        res = db_cursor.execute("SELECT pilot.pilot_name, destination.dest_name, count(*) FROM flight LEFT JOIN pilot LEFT JOIN  ON flight.pilot_id = pilot.pilot_id LEFT JOIN destination ON flight.dest_id = destination.dest_id GROUP BY flight.pilot_id, flight.dest_id")
+    elif reportType == 3:
+        res = db_cursor.execute("SELECT pilot.pilot_name, destination.dest_name, count(*) FROM flight LEFT JOIN pilot ON flight.pilot_id = pilot.pilot_id LEFT JOIN destination ON flight.dest_id = destination.dest_id GROUP BY flight.pilot_id, flight.dest_id")
 
-    
-    res.fetchall()
-    print(res.fetchall())
-
-    
+    for row in res.fetchall(): 
+        print(row)
+   
     
 
 """
@@ -387,7 +385,6 @@ while not end_program:
           6. View/Update Destination Information
           7. Generate Report
           8. Exit
-          9. Create Tables
           
           ''')
     
@@ -397,7 +394,7 @@ while not end_program:
         selected_option = int(response)
 
         print(selected_option)
-        if selected_option == "1":
+        if selected_option == 1:
             print('''
                 Please enter the flight details to insert
             ''')
@@ -405,11 +402,11 @@ while not end_program:
             resModel = input("Which model : ")
             resStatus = input("What status : ")
             resDepDate = input("Which departure date : ")
-            resPilot = input("Which pilot to add to flight ")
+            resPilot = input("Which pilot to add to flight : ")
 
             create_flight(db_cursor, resDestination, resModel, resStatus, resDepDate, resPilot)
 
-        elif selected_option == "2":
+        elif selected_option == 2:
             print('''
                 Please choose your filter condition or enter empty string to not filter based on that column
             ''')
@@ -419,7 +416,7 @@ while not end_program:
 
             retrive_flight(db_cursor, resDestination, resStatus, resDepDate)
 
-        elif selected_option == "3":
+        elif selected_option == 3:
             print('''
                 Please fill the new schedule and/or status for the flight you want to update
             ''')
@@ -429,7 +426,7 @@ while not end_program:
             
             modify_flight_schedule(db_cursor, resFlight, resStatus, resDepDate)
 
-        elif selected_option == "4":
+        elif selected_option == 4:
             print('''
                 Please fill the pilot id or choose random pilot for the flight you want to update
             ''')
@@ -442,15 +439,16 @@ while not end_program:
             
             assign_pilot(db_cursor, resFlight, resPilot, resRandom)
 
-        elif selected_option == "5":
+        elif selected_option == 5:
             print('''
                 Please fill the pilot id or see all pilot's schedule
+                  
             ''')
             resPilot = input("Which pilot to add to flight or type All: ")
      
             view_pilot_schedule(db_cursor, resPilot)
 
-        elif selected_option == "6":
+        elif selected_option == 6:
 
             print('''
                 Do you want to view or update destination?
@@ -460,9 +458,9 @@ while not end_program:
 
             ''')
 
-            resAction = input("Which Action would you like to perform?")
+            resActionIn = input("Which Action would you like to perform?")
             try:
-                resAction = int(response)
+                resAction = int(resActionIn)
                 if resAction == 1:
                     view_destinations(db_cursor)
                 elif resAction == 2:
@@ -482,7 +480,7 @@ while not end_program:
                 break
 
             
-        elif selected_option == "7":
+        elif selected_option == 7:
             print('''
                 Please choose the type of report to generate!
                   
@@ -491,9 +489,10 @@ while not end_program:
                 3. OverAll 
                
             ''')
+            
             resReportType = input("Report type : ")
             try:
-                report_option = int(response)
+                report_option = int(resReportType)
                 if report_option == 1 or report_option == 2 or report_option ==3:
                     view_report(db_cursor, report_option)
             except:
@@ -501,11 +500,11 @@ while not end_program:
                 end_program = True
                 break
 
-        elif selected_option == "8":
+        elif selected_option == 8:
             end_program = True
             break
 
-        elif selected_option == "9":
+        elif selected_option == 9:
             create_tables(db_cursor)
             
     except:

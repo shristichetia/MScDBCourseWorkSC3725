@@ -1,10 +1,10 @@
-"1",Heathrow,London UK, True
-"2",London City,London UK, True
-"3",Tokyo Haneda,Tokyo Japan, True
-"4",Euro Airport,Basel Switzerland, True
-"5",Sydney,Sydney Australia, True
-"6",Munich,Munich Germany, True
-"7",San Francisco,California US, True
-"8",New Delhi,Delhi India, True
-"9",Santorini,Santorini Islands Greece, True
-"10",Changi,Changi Singapore, True
+"1" , Heathrow     , London UK               , True
+"2" , London City  , London UK               , True
+"3" , Tokyo Haneda , Tokyo Japan             , True
+"4" , Euro Airport , Basel Switzerland       , True
+"5" , Sydney       , Sydney Australia        , True
+"6" , Munich       , Munich Germany          , True
+"7" , San Francisco, California US           , True
+"8" , New Delhi    , Delhi India             , True
+"9" , Santorini    , Santorini Islands Greece, True
+"10", Changi       , Changi Singapore        , True
