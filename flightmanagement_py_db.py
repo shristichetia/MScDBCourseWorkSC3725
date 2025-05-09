@@ -11,6 +11,7 @@ db_cursor = db_connection.cursor()
 
 """
 The below function is to create all the tables relevant for a design of flight management system
+The function call can be made from the terminal or by adding an extra menu item
 """
 
 def create_tables(db_cursor):
@@ -32,6 +33,7 @@ def create_tables(db_cursor):
 
 """
 The below function is to fill all the tables relevant for a design of flight management system
+The function call can be made from the terminal or by adding an extra menu item
 """
 def fill_tables(db_cursor, db_connection):
 
@@ -174,6 +176,8 @@ def fill_tables(db_cursor, db_connection):
 
 """
 The below function is to create flight
+It uses the SQL insert query to add a row to the flight table in the database.
+The flight id column gets auto incremented and inserted when a new row is created reducing the need to explicitly inserting it 
 """
 def create_flight(db_cursor, resDestination, resModel, resStatus, resDepDate, resPilot):
     db_cursor.execute("INSERT INTO flight (model_id, dest_id, pilot_id, flight_schedule, flight_status) VALUES (?, ?, ?, ?, ?)", (resModel, resDestination, resPilot, resDepDate, resStatus))
@@ -187,7 +191,9 @@ def create_flight(db_cursor, resDestination, resModel, resStatus, resDepDate, re
     
 
 """
-The below function is to retrieve ddata from the flight table based on conditions
+The below function is to retrieve rows from the flight table based on conditions like destination, status and departure date
+This can be viewed to find out what might need change on the database
+In the function, the selectQuery variable is used to create the whole SQL query based on the filter conditions that the user added or skipped on the terminal menu
 """
 
 def retrive_flight(db_cursor, dest, status, depDate):
@@ -213,14 +219,19 @@ def retrive_flight(db_cursor, dest, status, depDate):
         else:
             selectQuery = selectQuery + " flight_schedule = " + depDate
         addAnd = True
+
     res = db_cursor.execute(selectQuery)
+    # Below section is just the print the retrived rows
     for row in res.fetchall(): 
         print(row)
 
 
 """
 The below function is to update the departure date and status of a flight selected by the user
+On the terminal the user can decide if he wants to update either flight status, departure date or both for a particular flight id
+Once updated, the select query is invoked to display the newly updated record from the flight table
 """
+
 def modify_flight_schedule(db_cursor, flightId, depDate, status):
     if depDate != "" and status != "":
         db_cursor.execute("UPDATE flight SET flight_schedule=?, flight_status=? WHERE flight_id=? ", (depDate, status, flightId))
@@ -238,6 +249,8 @@ def modify_flight_schedule(db_cursor, flightId, depDate, status):
 
 """
 The below function is to assign pilot to an entry in the flight table based on conditions
+as per this function, if the user selects the function to select a random pilot for the flight, the script checks if the pilot is trained on the model of the aircraft which can be flown to the destination of the flight
+The SQL select query is a join of flight, pilot, pilot_trained_on_model and model_permitted_4_dest tables
 """
 def assign_pilot(db_cursor, flightId, pilotId, random):
 
@@ -275,6 +288,7 @@ def assign_pilot(db_cursor, flightId, pilotId, random):
 
 """
 The below function is to view pilot schedule
+The Select SQL query can be for all pilots or a pilot specified by the user on the terminal
 """
 def view_pilot_schedule(db_cursor, resPilot):
         
@@ -287,7 +301,11 @@ def view_pilot_schedule(db_cursor, resPilot):
         print(row)
     
 
-
+"""
+The below function is to view pilot schedule
+The Select SQL query is a simple select * query without any condition.
+This function might be invoked by the user to decide which destination rows might need update
+"""
     
 def view_destinations(db_curson):
     res = db_cursor.execute("SELECT * FROM destination")
@@ -295,7 +313,12 @@ def view_destinations(db_curson):
         print(row)
 
 """
-The below function is to retrieve ddata from the flight table based on conditions
+The below function is to update details of the destination table based on user input on the terminal
+In the function, the updateQuery variable is used to create the whole SQL update query based on the input provided by user 
+e.g. the up[date condition to update destination name is added, only if user had provided the input for the same]
+
+If the user did not provide the destination to update, the function takes it as an indication to inser the row as a new entry.
+The destination id itself is auto incremented and insereted together with the other attributes without the neecd to explicitly specify it
 """
 def manage_destination(db_cursor, destId, destName, destAdd, destStatus):
 
@@ -342,6 +365,8 @@ def manage_destination(db_cursor, destId, destName, destAdd, destStatus):
 
 """
 The below function is to retrieve ddata from the flight table based on conditions
+The select query can be based on destination or pilot or both
+This function can be easily extended to include other grouping columns like model , departure date or status as well
 """
 def view_report(db_cursor, reportType):
     """
@@ -363,13 +388,13 @@ def view_report(db_cursor, reportType):
     
 
 """
-The below function is to retrieve ddata from the flight table based on conditions
+The below 2 statements are used to initiate the connection with the database file as specified in db_file variable
 """
 db_connection = sqlite3.connect(db_file)
 db_cursor = db_connection.cursor()
 
 """
-The below function is to retrieve ddata from the flight table based on conditions
+The below piece of code is used to generate the menu options for the various options and actions available in this flight management requirement
 """
 end_program = False
 
@@ -389,7 +414,7 @@ while not end_program:
           ''')
     
     response = input("Your selection : ")
-
+    #the below section is wrapped within a try/except block to handle the unrecognised user entry easily
     try:
         selected_option = int(response)
 
@@ -405,7 +430,7 @@ while not end_program:
             resPilot = input("Which pilot to add to flight : ")
 
             create_flight(db_cursor, resDestination, resModel, resStatus, resDepDate, resPilot)
-
+            break
         elif selected_option == 2:
             print('''
                 Please choose your filter condition or enter empty string to not filter based on that column
@@ -415,7 +440,7 @@ while not end_program:
             resDepDate = input("Which departure date to filter by : ")
 
             retrive_flight(db_cursor, resDestination, resStatus, resDepDate)
-
+            break
         elif selected_option == 3:
             print('''
                 Please fill the new schedule and/or status for the flight you want to update
@@ -425,7 +450,7 @@ while not end_program:
             resStatus = input("Which status to filter by : ")
             
             modify_flight_schedule(db_cursor, resFlight, resStatus, resDepDate)
-
+            break
         elif selected_option == 4:
             print('''
                 Please fill the pilot id or choose random pilot for the flight you want to update
@@ -438,7 +463,7 @@ while not end_program:
                 resPilot = ""
             
             assign_pilot(db_cursor, resFlight, resPilot, resRandom)
-
+            break
         elif selected_option == 5:
             print('''
                 Please fill the pilot id or see all pilot's schedule
@@ -447,7 +472,7 @@ while not end_program:
             resPilot = input("Which pilot to add to flight or type All: ")
      
             view_pilot_schedule(db_cursor, resPilot)
-
+            break
         elif selected_option == 6:
 
             print('''
@@ -473,7 +498,7 @@ while not end_program:
                     resDestStatus = input("Is it an active destination or would you like to activate it(Y/N) : ")
                                 
                     manage_destination(db_cursor, resDestId, resDestName, resDestAddress, resDestStatus)
-
+                break
             except:
                 print('''Wrong Selection of report type! Exiting!''')
                 end_program = True
@@ -495,6 +520,7 @@ while not end_program:
                 report_option = int(resReportType)
                 if report_option == 1 or report_option == 2 or report_option ==3:
                     view_report(db_cursor, report_option)
+                break
             except:
                 print('''Wrong Selection of report type! Exiting!''')
                 end_program = True
