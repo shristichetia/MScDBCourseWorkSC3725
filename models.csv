@@ -1,9 +1,9 @@
-"1", "Boeing 747", True
-"2", "Boeing 777", True
-"3", "Boeing 787 Dreamliner", True
-"4", "Airbus A320", True
-"5", "Airbus A350", True
-"6", "Airbus A380", True
-"7", "Cessna 172", False
-"8", "Bombardier CRJ", True
-"9", "Boeing 737", False
+"1",Boeing 747, True
+"2",Boeing 777, True
+"3",Boeing 787 Dreamliner, True
+"4",Airbus A320, True
+"5",Airbus A350, True
+"6",Airbus A380, True
+"7",Cessna 172, False
+"8",Bombardier CRJ, True
+"9",Boeing 737, False

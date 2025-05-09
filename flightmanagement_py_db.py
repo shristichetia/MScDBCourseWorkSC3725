@@ -17,10 +17,11 @@ def create_tables(db_cursor):
     create_stmts = [
         "CREATE TABLE IF NOT EXISTS aircraft_model(model_id INTEGER PRIMARY KEY, model_name varchar(100) NOT NULL, in_use boolean NOT NULL)",
         "CREATE TABLE IF NOT EXISTS destination(dest_id INTEGER PRIMARY KEY, dest_name varchar(100) NOT NULL, dest_add varchar(300) NOT NULL, active boolean NOT NULL)",
-        "CREATE TABLE IF NOT EXISTS pilot(pilot_id INTEGER PRIMARY KEY, pilot_name varchar(100) NOT NULL, pilot_workday varchar(25) NOT NULL, active boolean NOT NULL)",
-        "CREATE TABLE IF NOT EXISTS model_permitted_4_dest(model_id INTEGER NOT NULL FOREIGN KEY REFERENCES aircraft_model(model_id), dest_id INTEGER NOT NULL FOREIGN KEY REFERENCES destination(dest_id), UNIQUE(model_id, dest_id))",
-        "CREATE TABLE IF NOT EXISTS pilot_trained_on_model(model_id INTEGER NOT NULL FOREIGN KEY REFERENCES aircraft_model(model_id), pilot_id INTEGER NOT NULL FOREIGN KEY REFERENCES pilot(pilot_id), UNIQUE(model_id, pilot_id))",
-        "CREATE TABLE IF NOT EXISTS flight(flight_id INTEGER PRIMARY KEY, model_id INTEGER FOREIGN KEY REFERENCES aircraft_model(model_id), dest_id INTEGER NOT NULL FOREIGN KEY REFERENCES destination(dest_id), pilot_id INTEGER FOREIGN KEY REFERENCES pilot(pilot_id), flight_schedule varchar(25), flight_status varchar(25) NOT NULL)"
+        "CREATE TABLE IF NOT EXISTS pilot(pilot_id INTEGER PRIMARY KEY, pilot_name varchar(100) NOT NULL, active boolean NOT NULL)",
+        "CREATE TABLE IF NOT EXISTS pilot_schedule(pilot_id INTEGER NOT NULL REFERENCES pilot(pilot_id), schedule INTEGER NOT NULL, schedule_text varchar(30))",
+        "CREATE TABLE IF NOT EXISTS model_permitted_4_dest(model_id INTEGER NOT NULL REFERENCES aircraft_model(model_id), dest_id INTEGER NOT NULL REFERENCES destination(dest_id), UNIQUE(model_id, dest_id))",
+        "CREATE TABLE IF NOT EXISTS pilot_trained_on_model(model_id INTEGER NOT NULL REFERENCES aircraft_model(model_id), pilot_id INTEGER NOT NULL REFERENCES pilot(pilot_id), UNIQUE(model_id, pilot_id))",
+        "CREATE TABLE IF NOT EXISTS flight(flight_id INTEGER PRIMARY KEY, model_id INTEGER REFERENCES aircraft_model(model_id), dest_id INTEGER NOT NULL REFERENCES destination(dest_id), pilot_id INTEGER REFERENCES pilot(pilot_id), flight_schedule varchar(25), flight_status varchar(25) DEFAULT ""Planning"" NOT NULL)"
     ]
 
     for creStmt in create_stmts:
@@ -50,16 +51,16 @@ def fill_tables(db_cursor, db_connection):
     db_connection.commit() 
 
     data_destination = [
-        ("1", "Heathrow", "London, UK", True),
-        ("2", "London City", "London, UK", True),
-        ("3", "Tokyo Haneda", "Tokyo, Japan", True),
-        ("4", "Euro Airport", "Basel, Switzerland", True),
-        ("5", "Sydney", "Sydney, Australia", True),
-        ("6", "Munich", "Munich, Germany", True),
-        ("7", "San Francisco", "California, US", True),
-        ("7", "New Delhi", "Delhi, India", True),
-        ("9", "Santorini", "Santorini Islands, Greece", True),
-        ("10", "Changi", "Changi, Singapore", True)
+        ("1", "Heathrow", "London UK", True),
+        ("2", "London City", "London UK", True),
+        ("3", "Tokyo Haneda", "Tokyo Japan", True),
+        ("4", "Euro Airport", "Basel Switzerland", True),
+        ("5", "Sydney", "Sydney Australia", True),
+        ("6", "Munich", "Munich Germany", True),
+        ("7", "San Francisco", "California US", True),
+        ("7", "New Delhi", "Delhi India", True),
+        ("9", "Santorini", "Santorini Islands Greece", True),
+        ("10", "Changi", "Changi Singapore", True)
     ]
 
     db_cursor.executemany("INSERT INTO destination VALUES(?, ?, ?, ?)", data_destination)
@@ -67,19 +68,55 @@ def fill_tables(db_cursor, db_connection):
 
 
     data_pilot = [
-        ("1", "Aaron Smith", "0,3,4", True),
-        ("2", "Adam Gilbert", "1.2.5", True),
-        ("3", "Jake Choo", "0,3,6", True),
-        ("4", "Minato", "2,5,6", True),
-        ("5", "Raghu Ram", "1,4,5", True),
-        ("6", "Rajneesh Singh", "2,5,6", True),
-        ("7", "Sam Fowler", "0,2,3", True),
-        ("8", "Jake Dhillon", "1,4,6", True),
-        ("9", "Jacob Doblinger", "3,5,6", True), 
-        ("10", "Ben Houghton", "0,2,4", True)
+        ("1", "Aaron Smith", True),
+        ("2", "Adam Gilbert", True),
+        ("3", "Jake Choo", True),
+        ("4", "Minato", True),
+        ("5", "Raghu Ram", True),
+        ("6", "Rajneesh Singh", True),
+        ("7", "Sam Fowler", True),
+        ("8", "Jake Dhillon", True),
+        ("9", "Jacob Doblinger", True), 
+        ("10", "Ben Houghton", True)
     ]
 
-    db_cursor.executemany("INSERT INTO pilot VALUES(?, ?, ?, ?)", data_pilot)
+    db_cursor.executemany("INSERT INTO pilot VALUES(?, ?, ?)", data_pilot)
+    db_connection.commit() 
+
+    data_pilot_sch = [
+        ("1", 0, "Sunday"),
+        ("1", 3, "Wednesday"),
+        ("1", 4, "Thursday"),
+        ("2", 1, "Monday"),
+        ("2", 2, "Tuesday"),
+        ("2", 5, "Friday"),
+        ("3", 0, "Sunday"),
+        ("3", 3, "Wednesday"),
+        ("3", 6, "Saturday"),
+        ("4", 2, "Tuesday"),
+        ("4", 5, "Friday"),
+        ("4", 6, "Saturday"),
+        ("5", 1, "Monday"),
+        ("5", 4, "Thursday"),
+        ("5", 5, "Friday"),
+        ("6", 2, "Tuesday"),
+        ("6", 5, "Friday"),
+        ("6", 6, "Saturday"),
+        ("7", 0, "Sunday"),
+        ("7", 2, "Tuesday"),
+        ("7", 3, "Wednesday"),
+        ("8", 1, "Monday"),
+        ("8", 4, "Thursday"),
+        ("8", 6, "Saturday"),
+        ("9", 3, "Wednesday"),
+        ("9", 5, "Friday"),
+        ("9", 6, "Saturday"),
+        ("10", 0, "Sunday"),
+        ("10", 2, "Tuesday"),
+        ("10", 4, "Thursday")
+    ]
+
+    db_cursor.executemany("INSERT INTO pilot_schedule VALUES(?, ?, ?)", data_pilot_sch)
     db_connection.commit() 
 
     data_pilotonmodel = [
@@ -156,21 +193,21 @@ The below function is to retrieve ddata from the flight table based on condition
 def retrive_flight(db_cursor, dest, status, depDate):
     selectQuery = "SELECT * FROM flight"
     addAnd = False
-    if dest is not "" or status is not "" or depDate is not "":
+    if dest != "" or status != "" or depDate != "":
         selectQuery = selectQuery + " where "
-    if dest is not "":
+    if dest != "":
         if addAnd == True:
             selectQuery = selectQuery + " and dest_id = " + dest
         else:
             selectQuery = selectQuery + " dest_id = " + dest
         addAnd = True
-    if status is not "":
+    if status != "":
         if addAnd == True:
             selectQuery = selectQuery + " and flight_status = " + status
         else:
             selectQuery = selectQuery + " flight_status = " + status
         addAnd = True
-    if depDate is not "":
+    if depDate != "":
         if addAnd == True:
             selectQuery = selectQuery + " and flight_schedule = " + depDate
         else:
@@ -185,11 +222,11 @@ def retrive_flight(db_cursor, dest, status, depDate):
 The below function is to update the departure date and status of a flight selected by the user
 """
 def modify_flight_schedule(db_cursor, flightId, depDate, status):
-    if depDate is not "" and status is not "":
+    if depDate != "" and status != "":
         db_cursor.execute("UPDATE flight SET flight_schedule=?, flight_status=? WHERE flight_id=? ", (depDate, status, flightId))
-    elif depDate is not "" and status is "":
+    elif depDate != "" and status == "":
         db_cursor.execute("UPDATE flight SET flight_schedule=? WHERE flight_id=? ", (depDate, flightId))
-    elif depDate is "" and status is not "":
+    elif depDate == "" and status != "":
         db_cursor.execute("UPDATE flight SET flight_status=? WHERE flight_id=? ", (status, flightId))
     db_connection.commit() 
 
@@ -214,9 +251,9 @@ def assign_pilot(db_cursor, flightId, pilotId, random):
         # Use isoweekday() to get the weekday (Monday is 1 and Sunday is 7)
         day_of_week = (dep_date.weekday() + 1) % 7  # Convert Sunday from 6 to 0
 
-        print(day_of_week)
+        #print(day_of_week)
 
-        pilot_rec = db_cursor.execute("SELECT * FROM pilot LEFT JOIN pilot_trained_on_model where pilot.pilot_id = pilot_trained_on_model.pilot_id and pilot_trained_on_model.model_id = ? and pilot.pilot_workday LIKE ?" , (model,day_of_week)) 
+        pilot_rec = db_cursor.execute("SELECT * FROM pilot LEFT JOIN pilot_trained_on_model ON pilot.pilot_id = pilot_trained_on_model.pilot_id LEFT JOIN pilot_schedule ON pilot.pilot_id = pilot_schedule.pilot_id WHERE pilot_trained_on_model.model_id = ? and pilot_schedule.schedule= ?" , (model,day_of_week)) 
         pilot_row = pilot_rec.fetchone()
         
         if pilot_row is None:
@@ -224,7 +261,7 @@ def assign_pilot(db_cursor, flightId, pilotId, random):
         else:
             pilot = flight_dets_row["pilot_id"]
             db_cursor.execute("UPDATE flight SET pilot_id=? WHERE flight_id=? ", (pilot, flightId))
-    elif pilotId is not "":
+    elif pilotId != "":
         #find_pilot = select pilot_id from pilot LEFT JOIN flight ON pilot.
         #db_cursor.execute("UPDATE flight SET flight_schedule=? WHERE flight_id=? ", (depDate, flightId))
         db_cursor.execute("UPDATE flight SET pilot_id=? WHERE flight_id=? ", (pilotId, flightId))
@@ -242,23 +279,15 @@ The below function is to view pilot schedule
 def view_pilot_schedule(db_cursor, resPilot):
 
     if resPilot != "All":
-        pilot_rec = db_cursor.execute("SELECT * FROM pilot WHERE pilot_id = ?" , resPilot) 
+        pilot_rec = db_cursor.execute("SELECT * FROM pilot LEFT JOIN pilot_schedule ON pilot.pilot_id = pilot_schedule.pilot_id WHERE pilot_id = ?" , resPilot) 
     else:
-        pilot_rec = db_cursor.execute("SELECT * FROM pilot") 
-    pilot_row = pilot_rec.fetchall()
+        pilot_rec = db_cursor.execute("SELECT * FROM pilot LEFT JOIN pilot_schedule ON pilot.pilot_id = pilot_schedule.pilot_id") 
+    
+    pilot_rec.fetchall()
+    print(pilot_rec.fetchall())
+    
 
-    days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
-    for pilotRec in pilot_row:
-        pilotName = pilotRec["pilot_name"]
-        rawSchedule = pilotRec["pilot_workday"]
-        finalSchedule = ""
-        for item in rawSchedule.split(','):
-            r = item.strip()
-            if finalSchedule == "":
-                finalSchedule = finalSchedule + days[r]
-            else:
-                finalSchedule = finalSchedule + ", " + days[r]
-        print(pilotName + " " + finalSchedule)
+
     
 def view_destinations(db_curson):
     res = db_cursor.execute("SELECT * FROM destination")
@@ -270,22 +299,22 @@ The below function is to retrieve ddata from the flight table based on condition
 """
 def manage_destination(db_cursor, destId, destName, destAdd, destStatus):
 
-    if destId is not "":
+    if destId != "":
         updateQuery = "UPDATE destination SET "
         addAnd = False
-        if destName is not "":
+        if destName != "":
             if addAnd == True:
                 updateQuery = updateQuery + ", dest_name = " + destName
             else:
                 updateQuery = updateQuery + " dest_name = " + destName
             addAnd = True
-        if destAdd is not "":
+        if destAdd != "":
             if addAnd == True:
                 updateQuery = updateQuery + ", dest_add = " + destAdd
             else:
                 updateQuery = updateQuery + " dest_add = " + destAdd
             addAnd = True
-        if destStatus is not "":
+        if destStatus != "":
             destActive = True
             if destStatus != "Y":
                 destActive = False
@@ -358,14 +387,17 @@ while not end_program:
           6. View/Update Destination Information
           7. Generate Report
           8. Exit
-
+          9. Create Tables
+          
           ''')
     
     response = input("Your selection : ")
+
     try:
         selected_option = int(response)
 
-        if selected_option == 1:
+        print(selected_option)
+        if selected_option == "1":
             print('''
                 Please enter the flight details to insert
             ''')
@@ -377,7 +409,7 @@ while not end_program:
 
             create_flight(db_cursor, resDestination, resModel, resStatus, resDepDate, resPilot)
 
-        elif selected_option == 2:
+        elif selected_option == "2":
             print('''
                 Please choose your filter condition or enter empty string to not filter based on that column
             ''')
@@ -387,7 +419,7 @@ while not end_program:
 
             retrive_flight(db_cursor, resDestination, resStatus, resDepDate)
 
-        elif selected_option == 3:
+        elif selected_option == "3":
             print('''
                 Please fill the new schedule and/or status for the flight you want to update
             ''')
@@ -397,7 +429,7 @@ while not end_program:
             
             modify_flight_schedule(db_cursor, resFlight, resStatus, resDepDate)
 
-        elif selected_option == 4:
+        elif selected_option == "4":
             print('''
                 Please fill the pilot id or choose random pilot for the flight you want to update
             ''')
@@ -410,7 +442,7 @@ while not end_program:
             
             assign_pilot(db_cursor, resFlight, resPilot, resRandom)
 
-        elif selected_option == 5:
+        elif selected_option == "5":
             print('''
                 Please fill the pilot id or see all pilot's schedule
             ''')
@@ -418,7 +450,7 @@ while not end_program:
      
             view_pilot_schedule(db_cursor, resPilot)
 
-        elif selected_option == 6:
+        elif selected_option == "6":
 
             print('''
                 Do you want to view or update destination?
@@ -450,7 +482,7 @@ while not end_program:
                 break
 
             
-        elif selected_option == 7:
+        elif selected_option == "7":
             print('''
                 Please choose the type of report to generate!
                   
@@ -469,9 +501,13 @@ while not end_program:
                 end_program = True
                 break
 
-        elif selected_option == 8:
+        elif selected_option == "8":
             end_program = True
             break
+
+        elif selected_option == "9":
+            create_tables(db_cursor)
+            
     except:
         print('''Wrong Selection! Exiting!''')
         end_program = True
